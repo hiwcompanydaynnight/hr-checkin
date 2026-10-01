@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#18251D">
+<title>ลงเวลาทำงาน · หิว 456</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<script>
+  // ▼▼ ตั้งค่าจุดเดียว: วางลิงก์ Web app ของ Apps Script (ลงท้ายด้วย /exec) ▼▼
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw6gSbdlofCIUvZpE4AOybsZyOyq41hum81Gz0OiTvHVSuae8iDPUKR9_DtRCFTjk-x7w/exec';
+</script>
+<style>
+  :root{
+    --bg:#18251D; --panel:#213028; --line:#34463B; --ink:#EEF5EA; --mute:#9DB0A2;
+    --accent:#B7FF72; --accent-ink:#13200F; --warn:#FFC857; --bad:#FF7A6B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',system-ui,sans-serif}
+  body{min-height:100dvh;display:flex;justify-content:center}
+  .wrap{width:100%;max-width:440px;padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+  header{display:flex;justify-content:space-between;align-items:flex-end;margin:4px 0 16px}
+  header h1{font-size:20px;margin:0;font-weight:700}
+  header small{display:block;color:var(--mute);font-size:13px}
+  .clock{text-align:right}
+  .clock b{font-size:28px;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:.5px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+  label{display:block;font-size:13px;color:var(--mute);margin-bottom:6px}
+  select,input{width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
+  select:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .row{display:grid;grid-template-columns:1fr 120px;gap:10px}
+  .today{font-size:14px;color:var(--mute);margin-top:10px;min-height:20px}
+  .cam{position:relative;aspect-ratio:1/1;background:#0f1813;border-radius:12px;overflow:hidden;display:grid;place-items:center}
+  .cam video,.cam img{width:100%;height:100%;object-fit:cover}
+  .cam video{transform:scaleX(-1)}
+  .cam .ph{color:var(--mute);font-size:14px;text-align:center;padding:20px}
+  .cam .oval{position:absolute;inset:14% 20%;border:2px dashed rgba(183,255,114,.55);border-radius:50%;pointer-events:none}
+  .btn{width:100%;font:inherit;font-weight:700;font-size:18px;border-radius:14px;padding:15px;border:0;cursor:pointer}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .shot{background:var(--ink);color:var(--bg);margin-top:10px}
+  .ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .go{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .in{background:var(--accent);color:var(--accent-ink)}
+  .out{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+  .gps{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mute)}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--mute);flex:none}
+  .ok .dot{background:var(--accent)} .ok{color:var(--ink)}
+  .warn .dot{background:var(--warn)} .bad .dot{background:var(--bad)}
+  .result{position:fixed;inset:0;background:rgba(10,16,12,.92);display:none;place-items:center;padding:24px;z-index:9}
+  .result.show{display:grid}
+  .result .box{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 22px;text-align:center;max-width:360px;width:100%}
+  .result .big{font-size:44px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+  .result.err .big{color:var(--bad);font-size:22px}
+  .result p{margin:8px 0 0;color:var(--mute)}
+  .foot{color:var(--mute);font-size:12px;text-align:center;margin-top:8px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>ลงเวลาทำงาน</h1><small id="company">กำลังโหลด…</small></div>
+    <div class="clock"><b id="clock">--:--</b><small id="date"></small></div>
+  </header>
+
+  <div class="card">
+    <div class="row">
+      <div><label for="emp">ชื่อพนักงาน</label><select id="emp"><option value="">— เลือกชื่อ —</option></select></div>
+      <div><label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••"></div>
+    </div>
+    <div class="today" id="today"></div>
+  </div>
+
+  <div class="card">
+    <div class="cam" id="cam">
+      <div class="ph" id="ph">แตะปุ่มด้านล่างเพื่อเปิดกล้องหน้า</div>
+      <video id="video" class="hidden" playsinline muted></video>
+      <img id="photo" class="hidden" alt="รูปที่ถ่าย">
+      <div class="oval hidden" id="oval"></div>
+    </div>
+    <button class="btn shot" id="shotBtn">เปิดกล้อง</button>
+    <input id="fileCam" class="hidden" type="file" accept="image/*" capture="user">
+  </div>
+
+  <div class="card"><div class="gps" id="gps"><span class="dot"></span><span id="gpsTxt">กำลังหาตำแหน่ง…</span></div></div>
+
+  <div class="go">
+    <button class="btn in" id="inBtn" disabled>เข้างาน</button>
+    <button class="btn out" id="outBtn" disabled>ออกงาน</button>
+  </div>
+  <div class="foot">เวลาที่บันทึกใช้เวลาของระบบ ไม่ใช่เวลาในมือถือ</div>
+</div>
+
+<div class="result" id="result"><div class="box"><div id="rTitle"></div><div class="big" id="rBig"></div><p id="rSub"></p>
+  <button class="btn ghost" style="margin-top:18px" onclick="closeResult()">ตกลง</button></div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const store = { get(k){ try{return localStorage.getItem(k)}catch(e){return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch(e){} } };
+let office = null, pos = null, stream = null, photoData = null, busy = false;
+
+// นาฬิกา
+function tick(){ const d=new Date(); $('clock').textContent=d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+  $('date').textContent=d.toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'}); }
+tick(); setInterval(tick, 10000);
+
+// โหลดรายชื่อ + พิกัดสำนักงาน
+const GROUP = new URLSearchParams(location.search).get('group') || '';
+fetch(API_URL + '?action=config' + (GROUP ? '&group=' + encodeURIComponent(GROUP) : '')).then(r=>r.json()).then(j=>{
+  if(!j.ok) throw new Error(j.msg);
+  $('company').textContent = j.company;
+  office = j.office;
+  j.employees.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.name+' ('+e.id+')'; $('emp').appendChild(o); });
+  const last = store.get('hiw_emp'); if(last){ $('emp').value = last; loadToday(); }
+  updateGps(); validate();
+}).catch(err=>{ $('company').textContent = 'เชื่อมต่อระบบไม่ได้'; showResult(false,'เชื่อมต่อไม่ได้', String(err.message||err)); });
+
+$('emp').addEventListener('change', ()=>{ store.set('hiw_emp', $('emp').value); loadToday(); validate(); });
+$('pin').addEventListener('input', validate);
+
+function loadToday(){
+  const id=$('emp').value; $('today').textContent='';
+  if(!id) return;
+  fetch(API_URL+'?action=today&id='+encodeURIComponent(id)).then(r=>r.json()).then(j=>{
+    if(!j.ok || !j.records.length){ $('today').textContent='วันนี้ยังไม่มีการลงเวลา'; return; }
+    $('today').textContent='วันนี้: '+j.records.map(r=>r.type+' '+r.time.slice(0,5)).join(' · ');
+    const last=j.records[j.records.length-1].type;
+    $('inBtn').style.order = last==='เข้างาน' ? 2 : 1; $('outBtn').style.order = last==='เข้างาน' ? 1 : 2;
+  }).catch(()=>{});
+}
+
+// GPS
+function watchGps(){
+  if(!navigator.geolocation){ setGps('bad','มือถือนี้ไม่รองรับ GPS'); return; }
+  navigator.geolocation.watchPosition(p=>{ pos=p.coords; updateGps(); },
+    e=>{ pos=null; setGps('bad', e.code===1 ? 'ไม่ได้อนุญาตตำแหน่ง — กดอนุญาตในเบราว์เซอร์' : 'หาตำแหน่งไม่ได้ ลองออกไปที่โล่ง'); },
+    {enableHighAccuracy:true, maximumAge:15000, timeout:20000});
+}
+function setGps(cls,txt){ $('gps').className='gps '+cls; $('gpsTxt').textContent=txt; }
+function updateGps(){
+  if(!pos) return;
+  if(!office || office.lat==null){ setGps('ok','ได้ตำแหน่งแล้ว (±'+Math.round(pos.accuracy)+' ม.)'); return; }
+  const d = dist(pos.latitude,pos.longitude,office.lat,office.lng);
+  if(d<=office.radius) setGps('ok','อยู่ในพื้นที่ทำงาน · ห่าง '+Math.round(d)+' ม.');
+  else setGps('warn','อยู่นอกพื้นที่ · ห่าง '+(d>=1000?(d/1000).toFixed(1)+' กม.':Math.round(d)+' ม.'));
+}
+function dist(a1,o1,a2,o2){ const R=6371000,t=Math.PI/180,dA=(a2-a1)*t,dO=(o2-o1)*t;
+  const h=Math.sin(dA/2)**2+Math.cos(a1*t)*Math.cos(a2*t)*Math.sin(dO/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+watchGps();
+
+// กล้อง
+$('shotBtn').addEventListener('click', async ()=>{
+  if(photoData){ photoData=null; $('photo').classList.add('hidden'); validate(); return openCam(); }
+  if(!stream) return openCam();
+  // ถ่ายรูป
+  const v=$('video'), c=document.createElement('canvas'), w=480, h=Math.round(w*v.videoHeight/v.videoWidth);
+  c.width=w; c.height=h; const x=c.getContext('2d'); x.translate(w,0); x.scale(-1,1); x.drawImage(v,0,0,w,h);
+  setPhoto(c.toDataURL('image/jpeg',0.72)); stopCam();
+});
+async function openCam(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720}},audio:false});
+    const v=$('video'); v.srcObject=stream; await v.play();
+    $('ph').classList.add('hidden'); v.classList.remove('hidden'); $('oval').classList.remove('hidden');
+    $('shotBtn').textContent='ถ่ายรูป';
+  }catch(e){ $('fileCam').click(); } // สำรอง: เปิดกล้องของเครื่อง
+}
+function stopCam(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } $('video').classList.add('hidden'); $('oval').classList.add('hidden'); }
+$('fileCam').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const img=new Image(); img.onload=()=>{ const w=480,h=Math.round(w*img.height/img.width),c=document.createElement('canvas');
+    c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h); setPhoto(c.toDataURL('image/jpeg',0.72)); URL.revokeObjectURL(img.src); };
+  img.src=URL.createObjectURL(f); e.target.value='';
+});
+function setPhoto(data){ photoData=data; $('photo').src=data; $('photo').classList.remove('hidden'); $('ph').classList.add('hidden'); $('shotBtn').textContent='ถ่ายใหม่'; validate(); }
+
+function validate(){ const ok = $('emp').value && $('pin').value.length>=4 && photoData && !busy; $('inBtn').disabled=!ok; $('outBtn').disabled=!ok; }
+
+// บันทึก
+$('inBtn').addEventListener('click', ()=>punch('IN'));
+$('outBtn').addEventListener('click', ()=>punch('OUT'));
+async function punch(type){
+  busy=true; validate(); const btn = type==='IN'?$('inBtn'):$('outBtn'); const label=btn.textContent; btn.textContent='กำลังบันทึก…';
+  try{
+    const body = { action:'punch', id:$('emp').value, pin:$('pin').value, type, photo:photoData,
+      lat: pos?pos.latitude:null, lng: pos?pos.longitude:null, acc: pos?pos.accuracy:null, ua: navigator.userAgent };
+    const r = await fetch(API_URL, { method:'POST', body: JSON.stringify(body) });
+    const j = await r.json();
+    if(j.ok){
+      showResult(true, j.name+' · '+j.type, j.time+' น.', j.zone==='ในพื้นที่' ? 'อยู่ในพื้นที่ทำงาน ✓' : j.zone+(j.dist!==''?' (ห่าง '+j.dist+' ม.)':''));
+      photoData=null; $('photo').classList.add('hidden'); $('ph').classList.remove('hidden'); $('shotBtn').textContent='เปิดกล้อง'; $('pin').value='';
+      loadToday();
+    } else showResult(false, 'บันทึกไม่สำเร็จ', j.msg);
+  }catch(e){ showResult(false,'ส่งข้อมูลไม่สำเร็จ','สัญญาณเน็ตอาจไม่ดี ลองใหม่อีกครั้ง'); }
+  busy=false; btn.textContent=label; validate();
+}
+function showResult(ok,title,big,sub){ $('result').className='result show'+(ok?'':' err'); $('rTitle').textContent=title; $('rBig').textContent=ok?big:big; $('rSub').textContent=sub||''; }
+function closeResult(){ $('result').className='result'; }
+</script>
+</body>
+</html>
