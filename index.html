@@ -196,9 +196,18 @@ let token = store.get('hiw_token'), me = null, office = null, records = [], pos 
 
 function show(view){ ['vLogin','vHome'].forEach(v=>$(v).classList.toggle('hidden', v!==view)); $('tabbar').classList.toggle('hidden', view!=='vHome'); }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1800); }
+// มือถือสัญญาณหลุดบ่อย: ลองซ้ำอัตโนมัติ 2 ครั้งเฉพาะคำสั่งที่ทำซ้ำได้ปลอดภัย (เข้าสู่ระบบ / อ่านข้อมูล) — ไม่ลองซ้ำการลงเวลา กันบันทึกซ้ำ
 async function api(params, body){
-  const r = body ? await fetch(API_URL,{method:'POST',body:JSON.stringify(body)}) : await fetch(API_URL+'?'+new URLSearchParams(params));
-  return r.json();
+  const retry = !body || body.action === 'login';
+  for (let i = 0; ; i++) {
+    try {
+      const r = body ? await fetch(API_URL,{method:'POST',body:JSON.stringify(body)}) : await fetch(API_URL+'?'+new URLSearchParams(params));
+      return await r.json();
+    } catch (e) {
+      if (!retry || i >= 2) throw e;
+      await new Promise(res => setTimeout(res, 1200 * (i + 1)));
+    }
+  }
 }
 
 // ── เข้าสู่ระบบ
@@ -212,7 +221,7 @@ $('loginBtn').addEventListener('click', async ()=>{
     const j = await api(null,{action:'login', phone:digits($('phone').value), pin:$('pass').value});
     if(j.ok){ token=j.token; store.set('hiw_token',token); $('pass').value=''; await loadMe(); }
     else $('loginErr').textContent = j.msg || 'เข้าสู่ระบบไม่สำเร็จ';
-  }catch(e){ $('loginErr').textContent='เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง'; }
+  }catch(e){ $('loginErr').textContent='เชื่อมต่อไม่ได้ — ตรวจสัญญาณอินเทอร์เน็ตแล้วลองใหม่'; }
   busy=false; $('loginBtn').textContent='เข้าสู่ระบบ'; validLogin();
 });
 
