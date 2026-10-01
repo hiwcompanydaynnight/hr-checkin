@@ -55,24 +55,12 @@
   .result p{margin:10px 0 0;color:var(--mute);line-height:1.6}
   .foot{color:var(--mute);font-size:12px;text-align:center;margin-top:8px}
   .hidden{display:none}
-  /* แถบเมนูด้านล่าง */
-  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:8;background:rgba(6,17,13,.97);border-top:1px solid var(--line);
-    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:6px 8px calc(6px + env(safe-area-inset-bottom));display:flex;justify-content:center}
-  .tabbar nav{display:grid;grid-template-columns:repeat(4,1fr);width:100%;max-width:440px}
-  .tabbar a{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;color:var(--mute);text-decoration:none;font-size:11.5px;border-radius:12px;position:relative;-webkit-tap-highlight-color:transparent}
-  .tabbar a svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  .tabbar a.on{color:var(--accent)}
-  .tabbar a.on::before{content:"";position:absolute;top:-7px;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
-  .tabbar a.soon{opacity:.5}
-  .tabbar a .badge{position:absolute;top:0;right:8%;font-size:9px;background:var(--line);color:var(--ink);padding:1px 5px;border-radius:8px}
-  .toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);
-    padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;white-space:nowrap}
-  .toast.show{opacity:1}
-  .wrap{padding-bottom:calc(96px + env(safe-area-inset-bottom)) !important}
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;font-size:15px;font-weight:600;margin:4px 0 10px}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <a class="back" id="backLink" href="index.html">‹ กลับไปหน้าเข้าสู่ระบบ</a>
   <header>
     <h1>ลงทะเบียนพนักงาน</h1>
     <small>บริษัทหิว 456 · กรอกครั้งเดียว ใช้เวลาประมาณ 2 นาที</small>
@@ -88,6 +76,15 @@
     <input id="phone" type="tel" inputmode="numeric" maxlength="12" autocomplete="tel" placeholder="08x-xxx-xxxx">
     <label for="email">อีเมล (ถ้ามี)</label>
     <input id="email" type="email" autocomplete="email" placeholder="name@gmail.com">
+  </div>
+
+  <div class="card">
+    <h2>รหัสผ่านสำหรับเข้าระบบ</h2>
+    <label for="pin1">ตั้งรหัสผ่าน (ตัวเลข 6 หลัก) <span class="req">*</span></label>
+    <input id="pin1" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="••••••">
+    <label for="pin2">ยืนยันรหัสผ่านอีกครั้ง <span class="req">*</span></label>
+    <input id="pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="••••••">
+    <div class="hint" id="pinHint">ใช้คู่กับเบอร์โทรตอนเข้าสู่ระบบ · ห้ามใช้เลขเรียง/เลขซ้ำ เช่น 123456, 111111</div>
   </div>
 
   <div class="card">
@@ -119,7 +116,7 @@
   </div>
 
   <button class="btn go" id="sendBtn" disabled>ส่งข้อมูล</button>
-  <div class="foot">ส่งแล้วผู้ดูแลจะแจ้ง <b>รหัสพนักงาน</b> และ <b>PIN</b> สำหรับลงเวลาให้ภายหลัง</div>
+  <div class="foot">ส่งแล้วรอผู้ดูแลอนุมัติ จากนั้นเข้าระบบด้วย <b>เบอร์โทร</b> + <b>รหัสที่ตั้งไว้</b></div>
 </div>
 
 <div class="result" id="result"><div class="box"><div id="rTitle"></div><div class="big" id="rBig"></div><p id="rSub"></p>
@@ -144,6 +141,15 @@ $('idNo').addEventListener('input', e=>{
   validate();
 });
 ['nick','name','phone','email'].forEach(id=>$(id).addEventListener('input', validate));
+function pinState(){ const a=$('pin1').value, b=$('pin2').value;
+  if(!a) return [false,'ใช้คู่กับเบอร์โทรตอนเข้าสู่ระบบ · ห้ามใช้เลขเรียง/เลขซ้ำ เช่น 123456, 111111',false];
+  if(!/^\d{6}$/.test(a)) return [false,'ต้องเป็นตัวเลข 6 หลัก',true];
+  if(/^(\d)\1{5}$/.test(a) || a==='123456' || a==='654321') return [false,'รหัสเดาง่ายเกินไป กรุณาตั้งใหม่',true];
+  if(b && a!==b) return [false,'รหัสทั้งสองช่องไม่ตรงกัน',true];
+  if(!b) return [false,'กรอกยืนยันรหัสอีกครั้ง',false];
+  return [true,'รหัสผ่านใช้ได้ ✓',false]; }
+['pin1','pin2'].forEach(id=>$(id).addEventListener('input', ()=>{ $(id).value=digits($(id).value); const [ok,msg,bad]=pinState(); $('pinHint').textContent=msg; $('pinHint').className='hint'+(bad?' err':''); validate(); }));
+$('backLink').href = 'index.html' + location.search;
 $('consent').addEventListener('change', validate);
 
 $('camBtn').addEventListener('click', ()=>$('camFile').click());
@@ -163,7 +169,7 @@ $('pickBtn').addEventListener('click', ()=>$('pickFile').click());
 
 function validate(){
   const ok = $('nick').value.trim() && $('name').value.trim().includes(' ') && /^0\d{8,9}$/.test(digits($('phone').value))
-    && thaiIdValid($('idNo').value) && cardData && $('consent').checked && !busy;
+    && thaiIdValid($('idNo').value) && pinState()[0] && cardData && $('consent').checked && !busy;
   $('sendBtn').disabled = !ok;
 }
 
@@ -171,12 +177,12 @@ $('sendBtn').addEventListener('click', async ()=>{
   busy=true; validate(); $('sendBtn').textContent='กำลังส่ง…';
   try{
     const body={ action:'register', nick:$('nick').value.trim(), name:$('name').value.trim(), phone:digits($('phone').value),
-      email:$('email').value.trim(), idNo:digits($('idNo').value), photo:cardData, consent:$('consent').checked, group:GROUP };
+      email:$('email').value.trim(), idNo:digits($('idNo').value), pin:$('pin1').value, photo:cardData, consent:$('consent').checked, group:GROUP };
     const r=await fetch(API_URL,{ method:'POST', body:JSON.stringify(body) });
     const j=await r.json();
     if(j.ok){
       showResult(true,'ส่งข้อมูลเรียบร้อย ✓', 'เลขคำขอ '+j.reqNo, j.msg);
-      ['nick','name','phone','email','idNo'].forEach(id=>$(id).value=''); $('consent').checked=false; $('idHint').textContent='';
+      ['nick','name','phone','email','idNo','pin1','pin2'].forEach(id=>$(id).value=''); $('consent').checked=false; $('idHint').textContent='';
       cardData=null; $('cardImg').classList.add('hidden'); $('cardPh').classList.remove('hidden'); $('camBtn').textContent='ถ่ายรูปบัตร';
     } else showResult(false,'ส่งไม่สำเร็จ', j.msg||'ลองใหม่อีกครั้ง');
   }catch(e){ showResult(false,'ส่งไม่สำเร็จ','สัญญาณเน็ตอาจไม่ดี ลองใหม่อีกครั้ง'); }
@@ -184,21 +190,6 @@ $('sendBtn').addEventListener('click', async ()=>{
 });
 function showResult(ok,title,big,sub){ $('result').className='result show'+(ok?'':' err'); $('rTitle').textContent=title; $('rBig').textContent=big; $('rSub').textContent=sub||''; }
 function closeResult(){ $('result').className='result'; }
-</script>
-<div class="tabbar"><nav aria-label="เมนูหลัก">
-    <a href="index.html" data-href="index.html"><svg viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="10" r="2.6"/><path d="M7.8 16.5c.9-1.8 2.4-2.7 4.2-2.7s3.3.9 4.2 2.7"/></svg><span>สแกนหน้า</span></a>
-    <a href="register.html" data-href="register.html" class="on" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.8-3.6 3.3-5.5 6.5-5.5 1.3 0 2.5.3 3.5.9"/><path d="M18 14v6M15 17h6"/></svg><span>ลงทะเบียน</span></a>
-    <a href="#" data-soon="1" class="soon"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h3M8 17h6"/></svg><span>กะ/ตารางงาน</span><span class="badge">เร็ว ๆ นี้</span></a>
-    <a href="#" data-soon="1" class="soon"><svg viewBox="0 0 24 24"><path d="M7 3.5h7l4.5 4.5v12a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 20V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M14 3.5V8h4.5M8.5 13h7M8.5 16.5h5"/></svg><span>ยื่นคำขอ</span><span class="badge">เร็ว ๆ นี้</span></a>
-</nav></div>
-<div class="toast" id="toast"></div>
-<script>
-// แถบเมนูด้านล่าง: ส่งต่อ ?group= ไปทุกหน้า และเมนูที่ยังไม่เปิดให้ขึ้น "เร็ว ๆ นี้"
-document.querySelectorAll('.tabbar a').forEach(a=>{
-  if(a.dataset.href) a.href = a.dataset.href + location.search;
-  if(a.dataset.soon) a.addEventListener('click', e=>{ e.preventDefault(); const t=document.getElementById('toast');
-    t.textContent = a.textContent.replace('เร็ว ๆ นี้','').trim() + ' — เร็ว ๆ นี้'; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1800); });
-});
 </script>
 </body>
 </html>
