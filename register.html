@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#18251D">
+<title>ลงทะเบียนพนักงาน · หิว 456</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<script>
+  // ▼▼ ตั้งค่าจุดเดียว: วางลิงก์ Web app ของ Apps Script (ลงท้ายด้วย /exec) ▼▼
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw6gSbdlofCIUvZpE4AOybsZyOyq41hum81Gz0OiTvHVSuae8iDPUKR9_DtRCFTjk-x7w/exec';
+</script>
+<style>
+  :root{
+    --bg:#18251D; --panel:#213028; --line:#34463B; --ink:#EEF5EA; --mute:#9DB0A2;
+    --accent:#B7FF72; --accent-ink:#13200F; --warn:#FFC857; --bad:#FF7A6B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',system-ui,sans-serif}
+  body{min-height:100dvh;display:flex;justify-content:center}
+  .wrap{width:100%;max-width:440px;padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+  header{margin:4px 0 16px}
+  header h1{font-size:20px;margin:0;font-weight:700}
+  header small{display:block;color:var(--mute);font-size:13px;margin-top:2px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+  .card h2{font-size:15px;margin:0 0 10px;color:var(--accent);font-weight:600}
+  label{display:block;font-size:13px;color:var(--mute);margin:10px 0 6px}
+  label:first-of-type{margin-top:0}
+  label .req{color:var(--accent)}
+  input[type=text],input[type=tel],input[type=email]{width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  input.err{border-color:var(--bad)}
+  .hint{font-size:12px;color:var(--mute);margin-top:4px;min-height:16px}
+  .hint.err{color:var(--bad)}
+  .card-photo{aspect-ratio:1.586/1;background:#0f1813;border-radius:12px;overflow:hidden;display:grid;place-items:center;border:1px dashed var(--line)}
+  .card-photo img{width:100%;height:100%;object-fit:contain}
+  .card-photo .ph{color:var(--mute);font-size:14px;text-align:center;padding:16px;line-height:1.6}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .btn{width:100%;font:inherit;font-weight:700;font-size:17px;border-radius:14px;padding:14px;border:0;cursor:pointer}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .light{background:var(--ink);color:var(--bg)}
+  .ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .go{background:var(--accent);color:var(--accent-ink);font-size:18px;padding:16px}
+  .consent{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.6}
+  .consent input{width:22px;height:22px;margin:2px 0 0;accent-color:var(--accent);flex:none}
+  details{font-size:13px;color:var(--mute);margin-top:10px;line-height:1.7}
+  details summary{cursor:pointer;color:var(--ink)}
+  details ul{padding-left:18px;margin:8px 0 0}
+  .result{position:fixed;inset:0;background:rgba(10,16,12,.92);display:none;place-items:center;padding:24px;z-index:9}
+  .result.show{display:grid}
+  .result .box{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 22px;text-align:center;max-width:360px;width:100%}
+  .result .big{font-size:22px;font-weight:700;color:var(--accent);margin-top:6px;word-break:break-all}
+  .result.err .big{color:var(--bad)}
+  .result p{margin:10px 0 0;color:var(--mute);line-height:1.6}
+  .foot{color:var(--mute);font-size:12px;text-align:center;margin-top:8px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ลงทะเบียนพนักงาน</h1>
+    <small>บริษัทหิว 456 · กรอกครั้งเดียว ใช้เวลาประมาณ 2 นาที</small>
+  </header>
+
+  <div class="card">
+    <h2>ข้อมูลส่วนตัว</h2>
+    <label for="nick">ชื่อเล่น <span class="req">*</span></label>
+    <input id="nick" type="text" maxlength="30" autocomplete="nickname">
+    <label for="name">ชื่อ-นามสกุล (ตามบัตรประชาชน) <span class="req">*</span></label>
+    <input id="name" type="text" maxlength="80" autocomplete="name" placeholder="เช่น สมชาย ใจดี">
+    <label for="phone">เบอร์โทร <span class="req">*</span></label>
+    <input id="phone" type="tel" inputmode="numeric" maxlength="12" autocomplete="tel" placeholder="08x-xxx-xxxx">
+    <label for="email">อีเมล (ถ้ามี)</label>
+    <input id="email" type="email" autocomplete="email" placeholder="name@gmail.com">
+  </div>
+
+  <div class="card">
+    <h2>บัตรประชาชน</h2>
+    <label for="idNo">เลขบัตรประชาชน 13 หลัก <span class="req">*</span></label>
+    <input id="idNo" type="text" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="x-xxxx-xxxxx-xx-x">
+    <div class="hint" id="idHint"></div>
+    <label>รูปถ่ายด้านหน้าบัตร <span class="req">*</span></label>
+    <div class="card-photo" id="cardBox"><div class="ph" id="cardPh">ถ่ายให้เห็นทั้งใบ ตัวหนังสืออ่านออก<br>ใช้นิ้วหรือกระดาษ <b>ปิดช่องศาสนาและกรุ๊ปเลือด</b> ตอนถ่าย</div><img id="cardImg" class="hidden" alt="รูปบัตร"></div>
+    <div class="two">
+      <button class="btn light" id="camBtn" type="button">ถ่ายรูปบัตร</button>
+      <button class="btn ghost" id="pickBtn" type="button">เลือกจากอัลบั้ม</button>
+    </div>
+    <input id="camFile" class="hidden" type="file" accept="image/*" capture="environment">
+    <input id="pickFile" class="hidden" type="file" accept="image/*">
+  </div>
+
+  <div class="card">
+    <label class="consent"><input id="consent" type="checkbox">
+      <span>ข้าพเจ้ายินยอมให้บริษัทหิว 456 เก็บข้อมูลข้างต้นและสำเนาบัตรประชาชน เพื่อการจ้างงาน ประกันสังคม และภาษี ตามหนังสือแจ้งการเก็บข้อมูลส่วนบุคคลของบริษัท <span class="req">*</span></span></label>
+    <details><summary>อ่านรายละเอียดการเก็บข้อมูล</summary>
+      <ul>
+        <li>ใช้เพื่อ: ติดต่องาน ทำเงินเดือน ขึ้นทะเบียนประกันสังคม ยื่นภาษีหัก ณ ที่จ่าย</li>
+        <li>เก็บในระบบ Google ของบริษัท เปิดดูได้เฉพาะผู้ดูแลระบบ ไม่เปิดเผยต่อบุคคลภายนอก เว้นแต่กฎหมายกำหนด</li>
+        <li>เก็บตลอดการจ้าง + 2 ปี (หรือตามที่กฎหมายภาษีกำหนด) แล้วลบ</li>
+        <li>ขอดู แก้ไข หรือสอบถามข้อมูลของตัวเองได้ที่ผู้ดูแลระบบ</li>
+      </ul>
+    </details>
+  </div>
+
+  <button class="btn go" id="sendBtn" disabled>ส่งข้อมูล</button>
+  <div class="foot">ส่งแล้วผู้ดูแลจะแจ้ง <b>รหัสพนักงาน</b> และ <b>PIN</b> สำหรับลงเวลาให้ภายหลัง</div>
+</div>
+
+<div class="result" id="result"><div class="box"><div id="rTitle"></div><div class="big" id="rBig"></div><p id="rSub"></p>
+  <button class="btn ghost" style="margin-top:18px" onclick="closeResult()">ตกลง</button></div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const GROUP = new URLSearchParams(location.search).get('group') || '';
+let cardData = null, busy = false;
+
+const digits = s => String(s||'').replace(/\D/g,'');
+function thaiIdValid(id){ const d=digits(id); if(d.length!==13) return false;
+  let s=0; for(let i=0;i<12;i++) s+=Number(d[i])*(13-i); return (11 - s%11)%10 === Number(d[12]); }
+function fmtId(d){ d=digits(d).slice(0,13); const p=[1,4,5,2,1]; let out=[],i=0; for(const n of p){ if(i>=d.length) break; out.push(d.slice(i,i+n)); i+=n; } return out.join('-'); }
+
+$('idNo').addEventListener('input', e=>{
+  const d=digits(e.target.value); e.target.value=fmtId(d);
+  const h=$('idHint');
+  if(d.length<13){ h.textContent=d.length? 'กรอกแล้ว '+d.length+'/13 หลัก':''; h.className='hint'; e.target.classList.remove('err'); }
+  else if(thaiIdValid(d)){ h.textContent='เลขบัตรถูกต้อง ✓'; h.className='hint'; e.target.classList.remove('err'); }
+  else { h.textContent='เลขบัตรไม่ถูกต้อง กรุณาตรวจอีกครั้ง'; h.className='hint err'; e.target.classList.add('err'); }
+  validate();
+});
+['nick','name','phone','email'].forEach(id=>$(id).addEventListener('input', validate));
+$('consent').addEventListener('change', validate);
+
+$('camBtn').addEventListener('click', ()=>$('camFile').click());
+$('pickBtn').addEventListener('click', ()=>$('pickFile').click());
+['camFile','pickFile'].forEach(id=>$(id).addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const img=new Image(); img.onload=()=>{
+    const max=1280, k=Math.min(1, max/Math.max(img.width,img.height));
+    const c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    cardData=c.toDataURL('image/jpeg',0.82); URL.revokeObjectURL(img.src);
+    $('cardImg').src=cardData; $('cardImg').classList.remove('hidden'); $('cardPh').classList.add('hidden');
+    $('camBtn').textContent='ถ่ายใหม่'; validate();
+  };
+  img.src=URL.createObjectURL(f); e.target.value='';
+}));
+
+function validate(){
+  const ok = $('nick').value.trim() && $('name').value.trim().includes(' ') && /^0\d{8,9}$/.test(digits($('phone').value))
+    && thaiIdValid($('idNo').value) && cardData && $('consent').checked && !busy;
+  $('sendBtn').disabled = !ok;
+}
+
+$('sendBtn').addEventListener('click', async ()=>{
+  busy=true; validate(); $('sendBtn').textContent='กำลังส่ง…';
+  try{
+    const body={ action:'register', nick:$('nick').value.trim(), name:$('name').value.trim(), phone:digits($('phone').value),
+      email:$('email').value.trim(), idNo:digits($('idNo').value), photo:cardData, consent:$('consent').checked, group:GROUP };
+    const r=await fetch(API_URL,{ method:'POST', body:JSON.stringify(body) });
+    const j=await r.json();
+    if(j.ok){
+      showResult(true,'ส่งข้อมูลเรียบร้อย ✓', 'เลขคำขอ '+j.reqNo, j.msg);
+      ['nick','name','phone','email','idNo'].forEach(id=>$(id).value=''); $('consent').checked=false; $('idHint').textContent='';
+      cardData=null; $('cardImg').classList.add('hidden'); $('cardPh').classList.remove('hidden'); $('camBtn').textContent='ถ่ายรูปบัตร';
+    } else showResult(false,'ส่งไม่สำเร็จ', j.msg||'ลองใหม่อีกครั้ง');
+  }catch(e){ showResult(false,'ส่งไม่สำเร็จ','สัญญาณเน็ตอาจไม่ดี ลองใหม่อีกครั้ง'); }
+  busy=false; $('sendBtn').textContent='ส่งข้อมูล'; validate();
+});
+function showResult(ok,title,big,sub){ $('result').className='result show'+(ok?'':' err'); $('rTitle').textContent=title; $('rBig').textContent=big; $('rSub').textContent=sub||''; }
+function closeResult(){ $('result').className='result'; }
+</script>
+</body>
+</html>
