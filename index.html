@@ -157,6 +157,19 @@
   .day.off .mid b{color:var(--mute);font-weight:500}
   .day.today{background:rgba(200,255,0,.06);margin:0 -16px;padding:10px 16px;border-left:3px solid var(--accent)}
   .day.past{opacity:.55}
+  /* ── บัญชีของฉัน (v1.8) ── */
+  .prof{display:flex;align-items:center;gap:14px;margin:4px 0 14px}
+  .avatar.lg{width:64px;height:64px;font-size:26px;border:2px solid var(--accent)}
+  .prof b{display:block;font-size:20px;line-height:1.3}
+  .prof small{color:var(--mute);font-size:14px}
+  .ten{background:linear-gradient(135deg,#1B3A2A,#0F1E18);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+  .ten small{color:var(--mute);font-size:13px}
+  .ten .v{font-size:28px;font-weight:700;color:var(--accent);margin:2px 0;font-variant-numeric:tabular-nums}
+  .kv{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+  .kv:last-child{border-bottom:0}
+  .kv span{color:var(--mute);font-size:14px;flex:none}
+  .kv b{font-size:16px;text-align:right;overflow-wrap:anywhere}
+  .kv b.miss{color:var(--mute);font-weight:500;font-size:14px}
   .toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);
     padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;z-index:40;white-space:nowrap}
   .toast.show{opacity:1}
@@ -263,11 +276,17 @@
 <div class="overlay" id="result"><div class="box"><div id="rTitle"></div><div class="big" id="rBig"></div><p id="rSub"></p>
   <button class="btn ghost" id="rOk">ตกลง</button></div></div>
 
-<div class="overlay" id="account"><div class="box" style="text-align:left">
-  <div class="who" style="margin-bottom:14px"><div class="avatar" id="aAvatar">?</div><div><b id="aName">—</b><small id="aMeta"></small></div></div>
-  <p>เครื่องนี้จะจำการเข้าสู่ระบบไว้ 30 วัน ถ้าเป็นเครื่องที่ใช้ร่วมกับคนอื่น ให้กดออกจากระบบทุกครั้ง</p>
+<!-- ───────── บัญชีของฉัน ───────── -->
+<main id="vAcc" class="hidden"><div class="wrap page">
+  <div class="ph"><div><h1>บัญชีของฉัน</h1><small id="aCompany">บริษัทหิว 456</small></div></div>
+  <div class="prof"><div class="avatar lg" id="aAvatar">?</div><div><b id="aName">—</b><small id="aMeta"></small></div></div>
+  <div class="ten"><small>อายุงาน</small><div class="v" id="aTenure">—</div><small id="aStart"></small></div>
+  <div class="card" id="aInfo"></div>
+  <div class="note">ข้อมูลไม่ถูกต้องหรือยังไม่ครบ แจ้งผู้ดูแลเพื่อแก้ไข</div>
+  <div class="section"><h2>การเข้าสู่ระบบ</h2></div>
+  <div class="note" style="margin:0 0 14px">เครื่องนี้จะจำการเข้าสู่ระบบไว้ 30 วัน ถ้าเป็นเครื่องที่ใช้ร่วมกับคนอื่น ให้กดออกจากระบบทุกครั้ง</div>
   <button class="btn outline" id="logoutBtn">ออกจากระบบ</button>
-  <button class="btn ghost" id="accClose">ปิด</button></div></div>
+</div></main>
 
 <div class="tabbar hidden" id="tabbar"><nav aria-label="เมนูหลัก">
   <a class="on" aria-current="page" id="tHome"><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg><span>หน้าหลัก</span></a>
@@ -283,8 +302,8 @@ const store = { get(k){ try{return localStorage.getItem(k)}catch(e){return null}
 const digits = s => String(s||'').replace(/\D/g,'');
 let token = store.get('hiw_token'), me = null, office = null, records = [], pos = null, stream = null, photo = null, busy = false, gpsWatch = null;
 
-const VIEWS = ['vLogin','vHome','vReq','vSched'], TABS = { vHome:'tHome', vReq:'tReq', vSched:'tSched' };
-let view = 'vLogin', today = null, reqData = null, schedMonth = null;
+const VIEWS = ['vLogin','vHome','vReq','vSched','vAcc'], TABS = { vHome:'tHome', vReq:'tReq', vSched:'tSched', vAcc:'tAcc' };
+let view = 'vLogin', today = null, reqData = null, schedMonth = null, acct = null;
 function show(v){
   view = v; VIEWS.forEach(x=>$(x).classList.toggle('hidden', x!==v)); $('tabbar').classList.toggle('hidden', v==='vLogin');
   Object.entries(TABS).forEach(([k,id])=>{ $(id).classList.toggle('on', k===v); if(k===v) $(id).setAttribute('aria-current','page'); else $(id).removeAttribute('aria-current'); });
@@ -329,18 +348,19 @@ async function loadMe(){
   try{
     const j = await api({action:'me', token});
     if(!j.ok){ if(j.auth===false){ logout(j.msg); return; } throw new Error(j.msg); }
-    me=j.profile; office=j.office; records=j.records||[]; today=j.today||null;
+    me=j.profile; office=j.office; records=j.records||[]; today=j.today||null; acct=j.account||null;
+    if(j.company){ $('company').textContent=j.company; $('aCompany').textContent=j.company; }
     renderHome(); show('vHome'); startGps(); loadReqs();
   }catch(e){ show('vLogin'); $('loginErr').textContent='เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง'; }
 }
-function logout(msg){ token=null; store.del('hiw_token'); me=null; reqData=null; schedMonth=null; today=null; $('account').classList.remove('show'); closeForm(); show('vLogin'); if(msg) $('loginErr').textContent=msg; }
+function logout(msg){ token=null; store.del('hiw_token'); me=null; reqData=null; schedMonth=null; today=null; acct=null; closeForm(); show('vLogin'); if(msg) $('loginErr').textContent=msg; }
 
 // ── หน้าหลัก
 function nextType(){ const last=records[records.length-1]; return last && last.type==='เข้างาน' ? 'OUT' : 'IN'; }
 function renderHome(){
   const n = me.nick || me.name || '';
   $('nick').textContent = n; $('avatar').textContent = n.slice(0,1) || '?';
-  $('aAvatar').textContent = n.slice(0,1) || '?'; $('aName').textContent = me.name || n; $('aMeta').textContent = 'รหัส ' + me.id + ' · ' + (me.group||'');
+  renderAcc();
   $('shift').textContent = today ? (today.off ? 'วันนี้หยุด' + (today.label ? ' · ' + today.label : '')
     : today.start + ' – ' + today.end + (today.label ? ' · ' + today.label : '')) : (me.start||'--:--') + ' – ' + (me.end||'--:--');
   $('nextLbl').textContent = '· ' + (nextType()==='IN' ? 'เข้างาน' : 'ออกงาน');
@@ -423,6 +443,36 @@ async function punch(type){
 }
 function showResult(ok,title,big,sub){ $('result').className='overlay show'+(ok?'':' err'); $('rTitle').textContent=title; $('rBig').textContent=big; $('rSub').textContent=sub||''; }
 $('rOk').addEventListener('click', ()=>$('result').className='overlay');
+
+// ── บัญชีของฉัน
+const thLong = ds => { const [y,m,d]=ds.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'}); };
+const fmtPhone = p => !p ? '' : p.length===10 ? p.slice(0,3)+'-'+p.slice(3,6)+'-'+p.slice(6) : p.length===9 ? p.slice(0,2)+'-'+p.slice(2,5)+'-'+p.slice(5) : p;
+// อายุงานแบบ ปี/เดือน/วัน (นับจากวันเริ่มงานถึงวันนี้)
+function tenure(start, end){
+  const [y1,m1,d1]=start.split('-').map(Number), [y2,m2,d2]=end.split('-').map(Number);
+  let months = (y2-y1)*12 + (m2-m1) - (d2 < d1 ? 1 : 0);
+  const am = m1 - 1 + months, dim = new Date(Date.UTC(y1, am + 1, 0)).getUTCDate();   // วันครบเดือนล่าสุด (ตัดวันที่ 31 ให้พอดีเดือน)
+  const anchor = Date.UTC(y1, am, Math.min(d1, dim));
+  return { y: Math.floor(months/12), m: months % 12, d: Math.round((Date.UTC(y2, m2-1, d2) - anchor) / 864e5) };
+}
+function tenureText(start, end){
+  if(start > end) return 'เริ่มงาน ' + thDate(start);
+  const t = tenure(start, end), parts = [];
+  if(t.y) parts.push(t.y+' ปี'); if(t.m) parts.push(t.m+' เดือน'); if(t.d || !parts.length) parts.push(t.d+' วัน');
+  return (t.y||t.m||t.d) ? parts.join(' ') : 'วันแรกของการทำงาน';
+}
+function renderAcc(){
+  const a = acct || { id: me.id, name: me.name, nick: me.nick, phone:'', position:'', group: me.group, birth:'', startDate:'' };
+  const n = a.nick || a.name || '';
+  $('aAvatar').textContent = n.slice(0,1) || '?'; $('aName').textContent = a.name || n;
+  $('aMeta').textContent = [a.nick ? 'ชื่อเล่น ' + a.nick : '', a.position || a.group].filter(Boolean).join(' · ');
+  const miss = '<b class="miss">ยังไม่ได้ระบุ</b>';
+  const row = (k, v) => `<div class="kv"><span>${k}</span>${v ? '<b>' + esc(v) + '</b>' : miss}</div>`;
+  $('aInfo').innerHTML = row('ชื่อ-นามสกุล', a.name) + row('เบอร์โทร', fmtPhone(a.phone)) + row('รหัสพนักงาน', a.id)
+    + row('ตำแหน่งงาน', a.position) + row('วันเกิด', a.birth ? thLong(a.birth) : '');
+  $('aTenure').textContent = a.startDate ? tenureText(a.startDate, ymd(new Date())) : 'ยังไม่ได้ระบุวันเริ่มงาน';
+  $('aStart').textContent = a.startDate ? 'เริ่มงาน ' + thLong(a.startDate) : 'แจ้งผู้ดูแลให้กรอกวันเริ่มงาน';
+}
 
 // ── ยื่นคำขอ (ลา / OT)
 const ST = { 'รอตรวจ':['wait','รออนุมัติ'], 'อนุมัติแล้ว':['ok','อนุมัติแล้ว'], 'ปฏิเสธ':['no','ไม่อนุมัติ'], 'ยกเลิก':['cancel','ยกเลิกแล้ว'] };
@@ -534,8 +584,7 @@ function openTab(v){ show(v); if(v==='vReq'){ if(reqData) renderReqs(); loadReqs
 $('tHome').addEventListener('click', ()=>openTab('vHome'));
 $('tReq').addEventListener('click', ()=>openTab('vReq'));
 $('tSched').addEventListener('click', ()=>openTab('vSched'));
-$('tAcc').addEventListener('click', ()=>$('account').classList.add('show'));
-$('accClose').addEventListener('click', ()=>$('account').classList.remove('show'));
+$('tAcc').addEventListener('click', ()=>openTab('vAcc'));
 $('logoutBtn').addEventListener('click', ()=>logout());
 
 loadMe();

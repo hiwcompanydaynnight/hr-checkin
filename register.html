@@ -29,7 +29,9 @@
   label:first-of-type{margin-top:0}
   label .req{color:var(--accent)}
   input[type=text],input[type=tel],input[type=email]{width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
-  input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  select{width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 8px;-webkit-appearance:none;appearance:none;min-width:0}
+  .dob{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.4fr) minmax(0,1fr);gap:8px}
+  input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
   input.err{border-color:var(--bad)}
   .hint{font-size:12px;color:var(--mute);margin-top:4px;min-height:16px}
   .hint.err{color:var(--bad)}
@@ -72,6 +74,9 @@
     <input id="nick" type="text" maxlength="30" autocomplete="nickname">
     <label for="name">ชื่อ-นามสกุล (ตามบัตรประชาชน) <span class="req">*</span></label>
     <input id="name" type="text" maxlength="80" autocomplete="name" placeholder="เช่น สมชาย ใจดี">
+    <label for="dobD">วันเกิด (ตามบัตรประชาชน) <span class="req">*</span></label>
+    <div class="dob"><select id="dobD" aria-label="วันที่เกิด"></select><select id="dobM" aria-label="เดือนเกิด"></select><select id="dobY" aria-label="ปีเกิด (พ.ศ.)"></select></div>
+    <div class="hint" id="dobHint"></div>
     <label for="phone">เบอร์โทร <span class="req">*</span></label>
     <input id="phone" type="tel" inputmode="numeric" maxlength="12" autocomplete="tel" placeholder="08x-xxx-xxxx">
     <label for="email">อีเมล (ถ้ามี)</label>
@@ -107,7 +112,7 @@
       <span>ข้าพเจ้ายินยอมให้บริษัทหิว 456 เก็บข้อมูลข้างต้นและสำเนาบัตรประชาชน เพื่อการจ้างงาน ประกันสังคม และภาษี ตามหนังสือแจ้งการเก็บข้อมูลส่วนบุคคลของบริษัท <span class="req">*</span></span></label>
     <details><summary>อ่านรายละเอียดการเก็บข้อมูล</summary>
       <ul>
-        <li>ใช้เพื่อ: ติดต่องาน ทำเงินเดือน ขึ้นทะเบียนประกันสังคม ยื่นภาษีหัก ณ ที่จ่าย</li>
+        <li>ใช้เพื่อ: ติดต่องาน ทำเงินเดือน ขึ้นทะเบียนประกันสังคม ยื่นภาษีหัก ณ ที่จ่าย · วันเกิดใช้ตรวจอายุขั้นต่ำตามกฎหมายแรงงานและขึ้นทะเบียนประกันสังคม</li>
         <li>เก็บในระบบ Google ของบริษัท เปิดดูได้เฉพาะผู้ดูแลระบบ ไม่เปิดเผยต่อบุคคลภายนอก เว้นแต่กฎหมายกำหนด</li>
         <li>เก็บตลอดการจ้าง + 2 ปี (หรือตามที่กฎหมายภาษีกำหนด) แล้วลบ</li>
         <li>ขอดู แก้ไข หรือสอบถามข้อมูลของตัวเองได้ที่ผู้ดูแลระบบ</li>
@@ -141,6 +146,31 @@ $('idNo').addEventListener('input', e=>{
   validate();
 });
 ['nick','name','phone','email'].forEach(id=>$(id).addEventListener('input', validate));
+// วันเกิด: เลือก วัน / เดือน / ปี พ.ศ. แล้วส่งเป็น ค.ศ. yyyy-mm-dd · ต้องอายุ 15 ปีขึ้นไป (กฎหมายแรงงาน)
+const TH_M = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const opt = (v,t) => `<option value="${v}">${t}</option>`;
+$('dobD').innerHTML = opt('','วัน') + Array.from({length:31},(_,i)=>opt(i+1,i+1)).join('');
+$('dobM').innerHTML = opt('','เดือน') + TH_M.map((m,i)=>opt(i+1,m)).join('');
+const thisY = new Date().getFullYear();
+$('dobY').innerHTML = opt('','ปี พ.ศ.') + Array.from({length:66},(_,i)=>thisY-15-i).map(y=>opt(y, y+543)).join('');
+function dobValue(){
+  const d=+$('dobD').value, m=+$('dobM').value, y=+$('dobY').value;
+  if(!d || !m || !y) return '';
+  const dt = new Date(y, m-1, d);
+  if(dt.getMonth() !== m-1) return null;                       // เช่น 31 กุมภาพันธ์
+  return y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+}
+function dobOk(){
+  const v = dobValue(); if(!v) return false;
+  const now = new Date(), b = new Date(v + 'T00:00:00');
+  let age = now.getFullYear() - b.getFullYear(); if(now < new Date(now.getFullYear(), b.getMonth(), b.getDate())) age--;
+  return age >= 15;
+}
+['dobD','dobM','dobY'].forEach(id=>$(id).addEventListener('change', ()=>{
+  const v=dobValue();
+  $('dobHint').textContent = v===null ? 'วันที่ไม่มีในเดือนนั้น กรุณาตรวจอีกครั้ง' : v && !dobOk() ? 'ต้องอายุ 15 ปีขึ้นไป' : '';
+  $('dobHint').className = 'hint' + ($('dobHint').textContent ? ' err' : ''); validate();
+}));
 function pinState(){ const a=$('pin1').value, b=$('pin2').value;
   if(!a) return [false,'ใช้คู่กับเบอร์โทรตอนเข้าสู่ระบบ · ห้ามใช้เลขเรียง/เลขซ้ำ เช่น 123456, 111111',false];
   if(!/^\d{6}$/.test(a)) return [false,'ต้องเป็นตัวเลข 6 หลัก',true];
@@ -168,7 +198,7 @@ $('pickBtn').addEventListener('click', ()=>$('pickFile').click());
 }));
 
 function validate(){
-  const ok = $('nick').value.trim() && $('name').value.trim().includes(' ') && /^0\d{8,9}$/.test(digits($('phone').value))
+  const ok = $('nick').value.trim() && $('name').value.trim().includes(' ') && dobOk() && /^0\d{8,9}$/.test(digits($('phone').value))
     && thaiIdValid($('idNo').value) && pinState()[0] && cardData && $('consent').checked && !busy;
   $('sendBtn').disabled = !ok;
 }
@@ -177,12 +207,13 @@ $('sendBtn').addEventListener('click', async ()=>{
   busy=true; validate(); $('sendBtn').textContent='กำลังส่ง…';
   try{
     const body={ action:'register', nick:$('nick').value.trim(), name:$('name').value.trim(), phone:digits($('phone').value),
-      email:$('email').value.trim(), idNo:digits($('idNo').value), pin:$('pin1').value, photo:cardData, consent:$('consent').checked, group:GROUP };
+      email:$('email').value.trim(), idNo:digits($('idNo').value), pin:$('pin1').value, photo:cardData, consent:$('consent').checked, group:GROUP,
+      dob:dobValue() };
     const r=await fetch(API_URL,{ method:'POST', body:JSON.stringify(body) });
     const j=await r.json();
     if(j.ok){
       showResult(true,'ส่งข้อมูลเรียบร้อย ✓', 'เลขคำขอ '+j.reqNo, j.msg);
-      ['nick','name','phone','email','idNo','pin1','pin2'].forEach(id=>$(id).value=''); $('consent').checked=false; $('idHint').textContent='';
+      ['nick','name','phone','email','idNo','pin1','pin2','dobD','dobM','dobY'].forEach(id=>$(id).value=''); $('consent').checked=false; $('idHint').textContent='';
       cardData=null; $('cardImg').classList.add('hidden'); $('cardPh').classList.remove('hidden'); $('camBtn').textContent='ถ่ายรูปบัตร';
     } else showResult(false,'ส่งไม่สำเร็จ', j.msg||'ลองใหม่อีกครั้ง');
   }catch(e){ showResult(false,'ส่งไม่สำเร็จ','สัญญาณเน็ตอาจไม่ดี ลองใหม่อีกครั้ง'); }
